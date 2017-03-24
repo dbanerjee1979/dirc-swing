@@ -22,6 +22,7 @@ public class ThreadedSocketIrcConnection implements IrcConnection {
     private List<IrcMessageListener> listeners;
     private LinkedBlockingQueue<IrcMessage> outbox;
     private Socket s;
+    private Thread sendThread;
 
     public ThreadedSocketIrcConnection(String hostname, int port, Charset charset) {
         this.hostname = hostname;
@@ -45,7 +46,7 @@ public class ThreadedSocketIrcConnection implements IrcConnection {
         final InputStream is = s.getInputStream();
         final OutputStream os = s.getOutputStream();
 
-        Thread recvThread = new Thread() {
+        Thread recvThread = new Thread(hostname + "-recv") {
             public void run() {
                 IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
                 IrcMessage m = null;
@@ -58,7 +59,7 @@ public class ThreadedSocketIrcConnection implements IrcConnection {
         recvThread.start();
 
         outbox = new LinkedBlockingQueue<IrcMessage>();
-        Thread sendThread = new Thread() {
+        sendThread = new Thread(hostname + "-send") {
             @Override
             public void run() {
                 PrintWriter w = new PrintWriter(new OutputStreamWriter(os, charset));
@@ -87,8 +88,12 @@ public class ThreadedSocketIrcConnection implements IrcConnection {
                 throw new IllegalStateException(ex);
             }
         }
+
+        if(sendThread != null) {
+            sendThread.interrupt();
+        }
     }
-    
+
     public void sendMessage(IrcMessage message) {
         outbox.offer(message);
     }
