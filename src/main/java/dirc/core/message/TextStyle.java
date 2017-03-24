@@ -8,7 +8,7 @@ public class TextStyle {
     public enum Style {
         Bold, Italic, Underlined, Color
     }
-    
+
     public enum Color {
         White, Black, Blue, Green, Red, Brown, Purple, Orange, Yellow, 
         LightGreen, Teal, LightCyan, LightBlue, Pink, Grey, LightGrey
@@ -34,6 +34,16 @@ public class TextStyle {
         this(style);
         this.start = start;
         this.end = end;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("textstyle: ");
+        sb.append("[ start: ").append(start);
+        sb.append(", end: ").append(end);
+        sb.append(", styles: ").append(styles);
+        sb.append("]");
+        return sb .toString();
     }
 
     public int getStart() {
