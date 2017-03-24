@@ -3,10 +3,14 @@ package dirc.core.message;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import dirc.core.message.TextStyle.Style;
+import dirc.core.message.TextStyle.Color;
 
 public class IrcMessageReader {
     private static final String SERVERNAME_PREFIX_PATTERN = 
@@ -19,6 +23,8 @@ public class IrcMessageReader {
             "[^ :\\n\\r][^ \\n\\r]*";
     private static final String TRAILING_PARAMETER_PATTERN = 
             ":[^\\n\\r]*";
+    private static final Pattern FORMATTING_PATTERN = Pattern.compile(
+            "(\u0002)|(\u001D)|(\u001F)|(\u000F)|(\u0003)([0-9]{2})?(?:,([0-9]{2}))?");
     
     private Scanner s;
 
@@ -50,10 +56,13 @@ public class IrcMessageReader {
         private String nickname;
         private String user;
         private String host;
-        private ArrayList<String> parameters;
+        private List<String> parameters;
+        private List<TextStyle> styles;
         
         public MessageParser(Scanner s) {
             this.s = s;
+            this.parameters = new ArrayList<String>();
+            this.styles = new ArrayList<TextStyle>();
         }
 
         public IrcMessage getMessage() {
@@ -61,7 +70,7 @@ public class IrcMessageReader {
             parsePrefix();
             String command = s.next(COMMAND_PATTERN);
             parseParameters();
-            return new IrcMessage(servername, nickname, user, host, command, parameters);
+            return new IrcMessage(servername, nickname, user, host, command, parameters, styles);
         }
         
         private void parsePrefix() {
@@ -83,7 +92,6 @@ public class IrcMessageReader {
         }
 
         private void parseParameters() {
-            parameters = new ArrayList<String>();
             parseMiddleParameters();
             s.skip(" *");
             s.useDelimiter("[\\n\\r]+");
@@ -98,8 +106,62 @@ public class IrcMessageReader {
         
         private void parseTrailingParameter() {
             if(s.hasNext(TRAILING_PARAMETER_PATTERN)) {
-                parameters.add(s.next(TRAILING_PARAMETER_PATTERN).substring(1));
+                parameters.add(parseTrailing(s.next(TRAILING_PARAMETER_PATTERN).substring(1)));
             }
+        }
+
+        private String parseTrailing(String trailing) {
+            int start = 0;
+            int end = trailing.length();
+            TextStyle style = new TextStyle(start, end);
+
+            StringBuffer sb = new StringBuffer();
+            Matcher m = FORMATTING_PATTERN.matcher(trailing);
+            while(m.find()) {
+                m.appendReplacement(sb, "");
+
+                end -= m.group().length();
+                if(sb.length() > start) {
+                    start = sb.length();
+                    styles.add(style.trimRange(start));
+                    style = new TextStyle(start, end, style);
+                }
+
+                if(m.group(1) != null) {
+                    style.set(Style.Bold);
+                }
+                else if(m.group(2) != null) {
+                    style.set(Style.Italic);
+                }
+                else if(m.group(3) != null) {
+                    style.set(Style.Underlined);
+                }
+                else if(m.group(4) != null) {
+                    style.clear();
+                }
+                else if(m.group(5) != null) {
+                    style.setColors(toColor(m.group(6)), toColor(m.group(7)));
+                }
+            }
+
+            if(style.length() > 0) {
+                styles.add(style.trimRange(end));
+            }
+            if(styles.get(0).isPlain()) {
+                styles.remove(0);
+            }
+
+            m.appendTail(sb);
+            return sb.toString();
+        }
+
+        private Color toColor(String text) {
+            if(text == null) {
+                return null;
+            }
+
+            int i = Integer.parseInt(text);
+            return i < Color.values().length ? Color.values()[i] : null;
         }
     }
 }

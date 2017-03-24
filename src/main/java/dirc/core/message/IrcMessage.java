@@ -1,6 +1,7 @@
 package dirc.core.message;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -11,26 +12,29 @@ public class IrcMessage {
     private String host;
     private String command;
     private List<String> parameters;
+    private List<TextStyle> styles;
 
     public IrcMessage(
-            String servername, 
-            String nickname, 
-            String user, 
-            String host, 
-            String command, 
-            List<String> parameters) {
+            String servername,
+            String nickname,
+            String user,
+            String host,
+            String command,
+            List<String> parameters,
+            List<TextStyle> styles) {
         this.servername = servername;
         this.nickname = nickname;
         this.user = user;
         this.host = host;
         this.command = command;
         this.parameters = parameters;
+        this.styles = styles;
     }
 
     public IrcMessage(
             String command, 
             String... parameters) {
-        this(null, null, null, null, command, Arrays.asList(parameters));
+        this(null, null, null, null, command, Arrays.asList(parameters), Collections.<TextStyle> emptyList());
     }
 
     @Override
@@ -99,5 +103,9 @@ public class IrcMessage {
         }
         sb.append("\r\n");
         return sb.toString();
+    }
+
+    public List<TextStyle> getTextStyles() {
+        return styles;
     }
 }
