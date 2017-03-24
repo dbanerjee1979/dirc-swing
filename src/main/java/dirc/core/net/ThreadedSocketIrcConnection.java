@@ -42,13 +42,11 @@ public class ThreadedSocketIrcConnection implements IrcConnection {
 
     public void connect() throws IOException {
         s = new Socket(hostname, port);
-        final InputStream is = s.getInputStream();
-        final OutputStream os = s.getOutputStream();
 
-        Thread receiver = new Receiver(is);
+        Receiver receiver = new Receiver(s.getInputStream());
         receiver.start();
 
-        sender = new Sender(os);
+        sender = new Sender(s.getOutputStream());
         sender.start();
     }
     
