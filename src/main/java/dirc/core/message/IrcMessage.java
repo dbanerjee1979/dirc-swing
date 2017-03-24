@@ -1,6 +1,7 @@
 package dirc.core.message;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 public class IrcMessage {
@@ -71,18 +72,32 @@ public class IrcMessage {
 
     public String serialize() {
         StringBuilder sb = new StringBuilder();
-        if(servername != null) {
-        }
-        else if(nickname != null) {
-        }
-        else {
-            sb.append(command);
-            for (String p : parameters) {
-                sb.append(" ");
-                sb.append(p);
+        sb.append(command);
+        for (Iterator<String> i = parameters.iterator(); i.hasNext();) {
+            String p = i.next();
+            sb.append(" ");
+            if(!i.hasNext()) {
+                if(p == null || p.length() == 0 || p.contains(" ")) {
+                    sb.append(":");
+                }
+                if(p == null) {
+                    p = "";
+                }
             }
-            sb.append("\r\n");
+            else {
+                if(p == null || p.length() == 0) {
+                    throw new IllegalArgumentException("Middle parameters must have a value");
+                }
+                else if(p.contains(" ")) {
+                    throw new IllegalArgumentException("Middle parameters cannot have spaces");
+                }
+                else if(p.charAt(0) == ':') {
+                    throw new IllegalArgumentException("Middle parameters cannot start with :");
+                }
+            }
+            sb.append(p);
         }
+        sb.append("\r\n");
         return sb.toString();
     }
 }
