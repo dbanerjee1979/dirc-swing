@@ -1,5 +1,6 @@
 package dirc.core.message;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class IrcMessage {
@@ -23,6 +24,12 @@ public class IrcMessage {
         this.host = host;
         this.command = command;
         this.parameters = parameters;
+    }
+
+    public IrcMessage(
+            String command, 
+            String... parameters) {
+        this(null, null, null, null, command, Arrays.asList(parameters));
     }
 
     @Override
@@ -60,5 +67,22 @@ public class IrcMessage {
 
     public List<String> getParameters() {
         return parameters;
+    }
+
+    public String serialize() {
+        StringBuilder sb = new StringBuilder();
+        if(servername != null) {
+        }
+        else if(nickname != null) {
+        }
+        else {
+            sb.append(command);
+            for (String p : parameters) {
+                sb.append(" ");
+                sb.append(p);
+            }
+            sb.append("\r\n");
+        }
+        return sb.toString();
     }
 }

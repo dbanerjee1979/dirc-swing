@@ -1,43 +1,32 @@
 package dirc.ui;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.net.Socket;
 import java.nio.charset.Charset;
+import java.util.concurrent.CountDownLatch;
 
 import dirc.core.message.IrcMessage;
-import dirc.core.message.IrcMessageReader;
+import dirc.core.message.IrcMessageListener;
+import dirc.core.net.IrcConnection;
+import dirc.core.net.ThreadedSocketIrcConnection;
 
 public class Test {
     public static void main(String[] args) throws IOException, InterruptedException {
-        final Socket s = new Socket("irc.freenode.net", 6667);
-        try {
-            Thread t = new Thread() {
-                public void run() {
-                    try {
-                        IrcMessageReader r = new IrcMessageReader(s.getInputStream(), Charset.forName("UTF-8"));
-                        IrcMessage m = null;
-                        while((m = r.nextMessage()) != null) {
-                            System.out.println(m);
-                        }
-                    }
-                    catch (IOException ex) {
-                        throw new IllegalStateException(ex);
-                    }
+        final IrcConnection c = new ThreadedSocketIrcConnection("irc.freenode.net", 6667, Charset.forName("UTF-8"));
+        final CountDownLatch shutdown = new CountDownLatch(1);
+        c.addMessageListener(new IrcMessageListener() {
+            public void receivedMessage(IrcMessage message) {
+                System.out.println(message);
+                if("sh0rug0ru".equals(message.getNickname()) && "QUIT".equals(message.getCommand())) {
+                    c.close();
+                    shutdown.countDown();
                 }
-            };
-            t.start();
-            
-            PrintWriter w = new PrintWriter(s.getOutputStream());
-            w.print("NICK sh0rug0ru\r\n");
-            w.print("USER guest 0 * :Duke\r\n");
-            w.print("QUIT\r\n");
-            w.flush();
-            
-            t.join();
-        }
-        finally {
-            s.close();
-        }
+            }
+        });
+        c.connect();
+        c.sendMessage(new IrcMessage("NICK", "sh0rug0ru"));
+        c.sendMessage(new IrcMessage("USER", "guest", "0", "*", "Duke"));
+        c.sendMessage(new IrcMessage("QUIT"));
+        shutdown.await();
+        c.close();
     }
 }
