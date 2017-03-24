@@ -20,9 +20,8 @@ public class ThreadedSocketIrcConnection implements IrcConnection {
     private int port;
     private Charset charset;
     private List<IrcMessageListener> listeners;
-    private LinkedBlockingQueue<IrcMessage> outbox;
     private Socket s;
-    private Thread sendThread;
+    private Sender sender;
 
     public ThreadedSocketIrcConnection(String hostname, int port, Charset charset) {
         this.hostname = hostname;
@@ -46,55 +45,78 @@ public class ThreadedSocketIrcConnection implements IrcConnection {
         final InputStream is = s.getInputStream();
         final OutputStream os = s.getOutputStream();
 
-        Thread recvThread = new Thread(hostname + "-recv") {
-            public void run() {
-                IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
-                IrcMessage m = null;
-                while((m = r.nextMessage()) != null) {
-                    fireMessageRecieved(m);
-                }
-            }
-        };
-        recvThread.setDaemon(true);
-        recvThread.start();
+        Thread receiver = new Receiver(is);
+        receiver.start();
 
-        outbox = new LinkedBlockingQueue<IrcMessage>();
-        sendThread = new Thread(hostname + "-send") {
-            @Override
-            public void run() {
-                PrintWriter w = new PrintWriter(new OutputStreamWriter(os, charset));
-                while(!Thread.currentThread().isInterrupted()) {
-                    try {
-                        IrcMessage msg = outbox.take();
-                        w.print(msg.serialize());
-                        w.flush();
-                    } 
-                    catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                }
-            }
-        };
-        sendThread.setDaemon(true);
-        sendThread.start();
+        sender = new Sender(os);
+        sender.start();
     }
     
     public void close() {
         if(s != null) {
             try {
                 s.close();
-            } 
+            }
             catch (IOException ex) {
                 throw new IllegalStateException(ex);
             }
         }
 
-        if(sendThread != null) {
-            sendThread.interrupt();
+        if(sender != null) {
+            sender.interrupt();
         }
     }
 
     public void sendMessage(IrcMessage message) {
-        outbox.offer(message);
+        sender.offer(message);
+    }
+
+    private final class Sender extends Thread {
+        private final OutputStream os;
+        private LinkedBlockingQueue<IrcMessage> outbox;
+
+        private Sender(OutputStream os) {
+            super(hostname + "-send");
+            this.os = os;
+            this.outbox = new LinkedBlockingQueue<IrcMessage>();
+            setDaemon(true);
+        }
+
+        public void offer(IrcMessage message) {
+            this.outbox.offer(message);
+        }
+
+        @Override
+        public void run() {
+            PrintWriter w = new PrintWriter(new OutputStreamWriter(os, charset));
+            while(!Thread.currentThread().isInterrupted()) {
+                try {
+                    IrcMessage msg = outbox.take();
+                    w.print(msg.serialize());
+                    w.flush();
+                }
+                catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+    }
+
+    private final class Receiver extends Thread {
+        private final InputStream is;
+
+        private Receiver(InputStream is) {
+            super(hostname + "-recv");
+            this.is = is;
+            setDaemon(true);
+        }
+
+        public void run() {
+            IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
+            IrcMessage m = null;
+            while((m = r.nextMessage()) != null) {
+                fireMessageRecieved(m);
+            }
+        }
     }
 }
