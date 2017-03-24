@@ -1,11 +1,12 @@
 package dirc.ui;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.nio.charset.Charset;
+
+import dirc.core.message.IrcMessage;
+import dirc.core.message.IrcMessageReader;
 
 public class Test {
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -14,11 +15,10 @@ public class Test {
             Thread t = new Thread() {
                 public void run() {
                     try {
-                        BufferedReader r = new BufferedReader(new InputStreamReader(
-                                s.getInputStream(), Charset.forName("UTF-8")));
-                        String line = null;
-                        while((line = r.readLine()) != null) {
-                            System.out.println(line);
+                        IrcMessageReader r = new IrcMessageReader(s.getInputStream(), Charset.forName("UTF-8"));
+                        IrcMessage m = null;
+                        while((m = r.nextMessage()) != null) {
+                            System.out.println(m);
                         }
                     }
                     catch (IOException ex) {

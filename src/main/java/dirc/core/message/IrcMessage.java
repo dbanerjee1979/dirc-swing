@@ -25,6 +25,19 @@ public class IrcMessage {
         this.parameters = parameters;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("message: ");
+        sb.append("[ servername: ").append(servername);
+        sb.append(", nickname: ").append(nickname);
+        sb.append(", user: ").append(user);
+        sb.append(", host: ").append(host);
+        sb.append(", command: ").append(command);
+        sb.append(", parameters: ").append(parameters);
+        sb.append("]");
+        return sb.toString();
+    }
+
     public String getServername() {
         return servername;
     }
