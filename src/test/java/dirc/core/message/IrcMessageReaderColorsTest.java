@@ -187,7 +187,72 @@ public class IrcMessageReaderColorsTest {
         assertEquals(TextStyle.Color.Red, style.getForeground());
         assertNull(style.getBackground());
     }
+
+    @Test
+    public void should_reverse_black_and_white_if_colors_are_defaults() throws IOException {
+        InputStream is = new ByteArrayInputStream("NOTICE :\u0016Hello World\r\n".getBytes("UTF-8"));
+        IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
+        IrcMessage m = r.nextMessage();
+
+        assertEquals(Arrays.asList("Hello World"), m.getParameters());
+        List<TextStyle> styles = m.getTextStyles();
+        assertEquals(1, styles.size());
+        TextStyle style = styles.get(0);
+        assertEquals(TextStyle.Color.White, style.getForeground());
+        assertEquals(TextStyle.Color.Black, style.getBackground());
+    }
     
+    @Test
+    public void should_reverse_colors() throws IOException {
+        InputStream is = new ByteArrayInputStream("NOTICE :\u000304,00Hello \u0016World\r\n".getBytes("UTF-8"));
+        IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
+        IrcMessage m = r.nextMessage();
+
+        assertEquals(Arrays.asList("Hello World"), m.getParameters());
+        List<TextStyle> styles = m.getTextStyles();
+        assertEquals(2, styles.size());
+        TextStyle style = styles.get(0);
+        assertEquals(TextStyle.Color.Red, style.getForeground());
+        assertEquals(TextStyle.Color.White, style.getBackground());
+        style = styles.get(1);
+        assertEquals(TextStyle.Color.White, style.getForeground());
+        assertEquals(TextStyle.Color.Red, style.getBackground());
+    }
+
+    @Test
+    public void should_turn_default_background_to_white_foreground() throws IOException {
+        InputStream is = new ByteArrayInputStream("NOTICE :\u000304Hello \u0016World\r\n".getBytes("UTF-8"));
+        IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
+        IrcMessage m = r.nextMessage();
+
+        assertEquals(Arrays.asList("Hello World"), m.getParameters());
+        List<TextStyle> styles = m.getTextStyles();
+        assertEquals(2, styles.size());
+        TextStyle style = styles.get(0);
+        assertEquals(TextStyle.Color.Red, style.getForeground());
+        assertNull(style.getBackground());
+        style = styles.get(1);
+        assertEquals(TextStyle.Color.White, style.getForeground());
+        assertEquals(TextStyle.Color.Red, style.getBackground());
+    }
+
+    @Test
+    public void should_turn_default_foreground_to_black_background() throws IOException {
+        InputStream is = new ByteArrayInputStream("NOTICE :\u0003,04Hello \u0016World\r\n".getBytes("UTF-8"));
+        IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
+        IrcMessage m = r.nextMessage();
+
+        assertEquals(Arrays.asList("Hello World"), m.getParameters());
+        List<TextStyle> styles = m.getTextStyles();
+        assertEquals(2, styles.size());
+        TextStyle style = styles.get(0);
+        assertNull(style.getForeground());
+        assertEquals(TextStyle.Color.Red, style.getBackground());
+        style = styles.get(1);
+        assertEquals(TextStyle.Color.Red, style.getForeground());
+        assertEquals(TextStyle.Color.Black, style.getBackground());
+    }
+
     @Test
     public void should_reset_colors_if_reset_formatting() throws IOException {
         InputStream is = new ByteArrayInputStream("NOTICE :\u000304,02Hello \u000FWorld\r\n".getBytes("UTF-8"));

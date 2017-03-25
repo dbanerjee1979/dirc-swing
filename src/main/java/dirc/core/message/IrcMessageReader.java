@@ -24,7 +24,7 @@ public class IrcMessageReader {
     private static final String TRAILING_PARAMETER_PATTERN = 
             ":[^\\n\\r]*";
     private static final Pattern FORMATTING_PATTERN = Pattern.compile(
-            "(\u0002)|(\u001D)|(\u001F)|(\u000F)|(\u0003)([0-9]{2})?(?:,([0-9]{2}))?");
+            "(\u0002)|(\u001D)|(\u001F)|(\u000F)|(\u0003)([0-9]{2})?(?:,([0-9]{2}))?|(\u0016)");
     
     private Scanner s;
 
@@ -141,6 +141,9 @@ public class IrcMessageReader {
                 }
                 else if(m.group(5) != null) {
                     style.setColors(toColor(m.group(6)), toColor(m.group(7)));
+                }
+                else if(m.group(8) != null) {
+                    style.reverseColors();
                 }
             }
 

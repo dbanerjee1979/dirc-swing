@@ -72,7 +72,8 @@ public class TextStyle {
 
     @SuppressWarnings("unchecked")
     private List<Color> getColor() {
-        return (List<Color>) styles.get(Style.Color);
+        List<Color> colors = (List<Color>) styles.get(Style.Color);
+        return colors != null ? colors : Arrays.<Color> asList(null, null);
     }
     
     public void clear() {
@@ -94,6 +95,12 @@ public class TextStyle {
 
     public int length() {
         return end - start;
+    }
+
+    public void reverseColors() {
+        Color foreground = getForeground();
+        Color background = getBackground();
+        setColors(background != null ? background : Color.White, foreground != null ? foreground : Color.Black);
     }
 }
 
