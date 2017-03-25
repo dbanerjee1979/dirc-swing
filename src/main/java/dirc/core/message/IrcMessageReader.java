@@ -40,8 +40,8 @@ public class IrcMessageReader {
     /**
      * Create a message reader
      * 
-     * @param is      - input stream of IRC server responses
-     * @param charset - character encoding of the server responses
+     * @param is      - input byte stream of IRC server responses
+     * @param charset - character encoding of the byte stream
      */
     public IrcMessageReader(InputStream is, Charset charset) {
         s = new Scanner(is, charset.name());
