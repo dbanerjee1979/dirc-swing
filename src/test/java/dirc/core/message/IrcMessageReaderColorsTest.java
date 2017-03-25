@@ -38,6 +38,63 @@ public class IrcMessageReaderColorsTest {
     }
     
     @Test
+    public void should_return_two_spans_for_two_bold_text_codes() throws IOException {
+        InputStream is = new ByteArrayInputStream("NOTICE :\u0002Hello\u0002 World\r\n".getBytes("UTF-8"));
+        IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
+        IrcMessage m = r.nextMessage();
+        
+        assertEquals(Arrays.asList("Hello World"), m.getParameters());
+        List<TextStyle> styles = m.getTextStyles();
+        assertEquals(2, styles.size());
+        TextStyle style = styles.get(0);
+        assertEquals(0, style.getStart());
+        assertEquals(5, style.getEnd());
+        assertTrue(style.is(TextStyle.Style.Bold));
+        style = styles.get(1);
+        assertEquals(5, style.getStart());
+        assertEquals(11, style.getEnd());
+        assertTrue(style.isPlain());
+    }
+    
+    @Test
+    public void should_return_two_spans_for_two_italic_text_codes() throws IOException {
+        InputStream is = new ByteArrayInputStream("NOTICE :\u001DHello\u001D World\r\n".getBytes("UTF-8"));
+        IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
+        IrcMessage m = r.nextMessage();
+        
+        assertEquals(Arrays.asList("Hello World"), m.getParameters());
+        List<TextStyle> styles = m.getTextStyles();
+        assertEquals(2, styles.size());
+        TextStyle style = styles.get(0);
+        assertEquals(0, style.getStart());
+        assertEquals(5, style.getEnd());
+        assertTrue(style.is(TextStyle.Style.Italic));
+        style = styles.get(1);
+        assertEquals(5, style.getStart());
+        assertEquals(11, style.getEnd());
+        assertTrue(style.isPlain());
+    }
+    
+    @Test
+    public void should_return_two_spans_for_two_italic_underline_codes() throws IOException {
+        InputStream is = new ByteArrayInputStream("NOTICE :\u001FHello\u001F World\r\n".getBytes("UTF-8"));
+        IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
+        IrcMessage m = r.nextMessage();
+        
+        assertEquals(Arrays.asList("Hello World"), m.getParameters());
+        List<TextStyle> styles = m.getTextStyles();
+        assertEquals(2, styles.size());
+        TextStyle style = styles.get(0);
+        assertEquals(0, style.getStart());
+        assertEquals(5, style.getEnd());
+        assertTrue(style.is(TextStyle.Style.Underlined));
+        style = styles.get(1);
+        assertEquals(5, style.getStart());
+        assertEquals(11, style.getEnd());
+        assertTrue(style.isPlain());
+    }
+    
+    @Test
     public void should_return_style_span_for_bold_and_italic_text() throws IOException {
         InputStream is = new ByteArrayInputStream("NOTICE :\u0002\u001DTest\r\n".getBytes("UTF-8"));
         IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));

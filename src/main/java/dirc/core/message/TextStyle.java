@@ -80,8 +80,13 @@ public class TextStyle {
         styles.clear();
     }
 
-    public void set(Style style) {
-        styles.put(style, Boolean.TRUE);
+    public void toggle(Style style) {
+        if(!styles.containsKey(style)) {
+            styles.put(style, Boolean.TRUE);
+        }
+        else {
+            styles.remove(style);
+        }
     }
 
     public void setColors(Color foreground, Color background) {
