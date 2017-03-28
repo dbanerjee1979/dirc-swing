@@ -45,7 +45,14 @@ public class IrcMessage {
         sb.append(", user: ").append(user);
         sb.append(", host: ").append(host);
         sb.append(", command: ").append(command);
-        sb.append(", parameters: ").append(parameters);
+        sb.append(", parameters: [");
+        for(Iterator<String> p = parameters.iterator(); p.hasNext();) {
+            sb.append("'").append(p.next()).append("'");
+            if(p.hasNext()) {
+                sb.append(", ");
+            }
+        }
+        sb.append("]");
         sb.append(", styles: ").append(styles);
         sb.append("]");
         return sb.toString();

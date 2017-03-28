@@ -1,15 +1,14 @@
 package dirc.ui.event;
 
 import java.util.Iterator;
-
-import dirc.core.message.IrcMessage;
+import java.util.List;
 
 public class ServerEvent extends IrcEvent {
     private String messageText;
 
-    public ServerEvent(IrcMessage message) {
+    public ServerEvent(List<String> parameters) {
         StringBuilder messageText = new StringBuilder();
-        for (Iterator<String> p = message.getParameters().iterator(); p.hasNext();) {
+        for (Iterator<String> p = parameters.iterator(); p.hasNext();) {
             messageText.append(p.next());
             if(p.hasNext()) {
                 messageText.append(" ");
