@@ -74,6 +74,10 @@ public class IrcMessage {
     public List<String> getParameters() {
         return parameters;
     }
+    
+    public String getLastParameter() {
+        return parameters.isEmpty() ? "" : parameters.get(parameters.size() - 1);
+    }
 
     public String serialize() {
         StringBuilder sb = new StringBuilder();
