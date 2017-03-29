@@ -12,10 +12,28 @@ import dirc.ui.event.IrcEvent;
 import dirc.ui.event.IrcEventListener;
 import dirc.ui.event.MotDEnd;
 import dirc.ui.event.MotDStart;
+import dirc.ui.event.NoticeEvent;
 import dirc.ui.event.QuitEvent;
 import dirc.ui.event.ServerEvent;
 
 public class IrcServer {
+    private static final String RPL_WELCOME = "001";
+    private static final String RPL_YOURHOST = "002";
+    private static final String RPL_CREATED = "003";
+    private static final String RPL_MYINFO = "004";
+    private static final String RPL_ISUPPORT = "005";
+    private static final String RPL_STATCONN = "250";
+    private static final String RPL_LUSERCLIENT = "251";
+    private static final String RPL_LUSEROP = "252";
+    private static final String RPL_LUSERUNKNOWN = "253";
+    private static final String RPL_LUSERCHANNELS = "254";
+    private static final String RPL_LUSERME = "255";
+    private static final String RPL_LOCALUSERS = "265";
+    private static final String RPL_GLOBALUSERS = "266";
+    private static final String RPL_MOTDSTART = "375";
+    private static final String RPL_MOTD = "372";
+    private static final String RPL_ENDOFMOTD = "376";
+    
     private IrcConnection connection;
     private List<IrcEventListener> listeners;
 
@@ -41,37 +59,39 @@ public class IrcServer {
     
     private IrcEvent translateEvent(IrcMessage message) {
         System.out.println(message.toString());
-        List<String> ps = message.getParameters();
         if("QUIT".equalsIgnoreCase(message.getCommand())) {
             return new QuitEvent(message.getNickname(), message.getLastParameter());
         }
-        else if("001".equals(message.getCommand()) ||
-                "002".equals(message.getCommand()) ||
-                "003".equals(message.getCommand()) ||
-                "004".equals(message.getCommand()) ||
-                "005".equals(message.getCommand()) ||
-                "251".equals(message.getCommand()) ||
-                "252".equals(message.getCommand()) ||
-                "253".equals(message.getCommand()) ||
-                "254".equals(message.getCommand()) ||
-                "255".equals(message.getCommand())) {
-            return new ServerEvent(ps.subList(ps.size() > 1 ? 1 : 0, ps.size()));
+        if("NOTICE".equalsIgnoreCase(message.getCommand())) {
+            return new NoticeEvent(message.getParameter(0), message.getLastParameter());
         }
-        else if("265".equals(message.getCommand()) ||
-                "266".equals(message.getCommand()) ||
-                "250".equals(message.getCommand())) {
-            return new ServerEvent(ps.subList(ps.size() - 1, ps.size()));
+        else if(RPL_WELCOME.equals(message.getCommand()) ||
+                RPL_YOURHOST.equals(message.getCommand()) ||
+                RPL_CREATED.equals(message.getCommand()) ||
+                RPL_LUSERCLIENT.equals(message.getCommand()) ||
+                RPL_LUSERME.equals(message.getCommand()) ||
+                RPL_LOCALUSERS.equals(message.getCommand()) ||
+                RPL_GLOBALUSERS.equals(message.getCommand()) ||
+                RPL_STATCONN.equals(message.getCommand())) {
+            return new ServerEvent(message.getLastParameter());
         }
-        else if("375".equals(message.getCommand())) {
+        else if(RPL_MYINFO.equals(message.getCommand()) ||
+                RPL_ISUPPORT.equals(message.getCommand()) ||
+                RPL_LUSEROP.equals(message.getCommand()) ||
+                RPL_LUSERUNKNOWN.equals(message.getCommand()) ||
+                RPL_LUSERCHANNELS.equals(message.getCommand())) {
+            return new ServerEvent(message.getJoinedParameters(1));
+        }
+        else if(RPL_MOTDSTART.equals(message.getCommand())) {
             return new MotDStart(message.getLastParameter());
         }
-        else if("372".equals(message.getCommand())) {
+        else if(RPL_MOTD.equals(message.getCommand())) {
             return new MotD(message.getLastParameter());
         }
-        else if("376".equals(message.getCommand())) {
+        else if(RPL_ENDOFMOTD.equals(message.getCommand())) {
             return new MotDEnd(message.getLastParameter());
         }
-        return new ServerEvent(ps);
+        return new ServerEvent(message.getJoinedParameters(0));
     }
 
     public void connect() throws IOException {

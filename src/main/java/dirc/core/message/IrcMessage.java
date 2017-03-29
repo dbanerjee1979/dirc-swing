@@ -81,9 +81,24 @@ public class IrcMessage {
     public List<String> getParameters() {
         return parameters;
     }
+
+    public String getParameter(int n) {
+        return n < parameters.size() ? parameters.get(n) : "";
+    }
     
     public String getLastParameter() {
         return parameters.isEmpty() ? "" : parameters.get(parameters.size() - 1);
+    }
+    
+    public String getJoinedParameters(int n) {
+        StringBuilder s = new StringBuilder();
+        for (Iterator<String> p = parameters.subList(n, parameters.size()).iterator(); p.hasNext();) {
+            s.append(p.next());
+            if(p.hasNext()) {
+                s.append(" ");
+            }
+        }
+        return s.toString();
     }
 
     public String serialize() {
