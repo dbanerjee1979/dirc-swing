@@ -1,14 +1,14 @@
-package dirc.ui.event;
+package dirc.core.event;
 
 import java.util.List;
 
 import dirc.core.message.TextStyle;
 
-public class MotDStart extends IrcEvent {
+public class MotDEnd extends IrcEvent {
     private String message;
     private List<TextStyle> textStyles;
 
-    public MotDStart(String message, List<TextStyle> textStyles) {
+    public MotDEnd(String message, List<TextStyle> textStyles) {
         this.message = message;
         this.textStyles = textStyles;
     }

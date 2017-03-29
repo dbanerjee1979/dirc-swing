@@ -1,4 +1,4 @@
-package dirc.ui.event;
+package dirc.core.event;
 
 import java.util.Collections;
 import java.util.List;

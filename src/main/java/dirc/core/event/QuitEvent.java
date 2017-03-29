@@ -1,4 +1,4 @@
-package dirc.ui.event;
+package dirc.core.event;
 
 public class QuitEvent extends IrcEvent {
     private String nickname;

@@ -1,4 +1,4 @@
-package dirc.ui.event;
+package dirc.core.event;
 
 public class ServerEvent extends IrcEvent {
     private String messageText;

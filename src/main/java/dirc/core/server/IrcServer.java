@@ -4,17 +4,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import dirc.core.event.IrcEvent;
+import dirc.core.event.IrcEventListener;
+import dirc.core.event.MotD;
+import dirc.core.event.MotDEnd;
+import dirc.core.event.MotDStart;
+import dirc.core.event.NoticeEvent;
+import dirc.core.event.QuitEvent;
+import dirc.core.event.ServerEvent;
 import dirc.core.message.IrcMessage;
 import dirc.core.message.IrcMessageListener;
-import dirc.core.message.MotD;
 import dirc.core.net.IrcConnection;
-import dirc.ui.event.IrcEvent;
-import dirc.ui.event.IrcEventListener;
-import dirc.ui.event.MotDEnd;
-import dirc.ui.event.MotDStart;
-import dirc.ui.event.NoticeEvent;
-import dirc.ui.event.QuitEvent;
-import dirc.ui.event.ServerEvent;
 
 public class IrcServer {
     private static final String RPL_WELCOME = "001";

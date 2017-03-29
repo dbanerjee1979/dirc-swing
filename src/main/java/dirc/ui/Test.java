@@ -15,18 +15,18 @@ import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.AbstractTableModel;
 
+import dirc.core.event.IrcEvent;
+import dirc.core.event.IrcEventListener;
+import dirc.core.event.MotD;
+import dirc.core.event.MotDEnd;
+import dirc.core.event.MotDStart;
+import dirc.core.event.QuitEvent;
 import dirc.core.message.IrcMessage;
-import dirc.core.message.MotD;
 import dirc.core.message.TextStyle;
 import dirc.core.message.TextStyle.Style;
 import dirc.core.net.IrcConnection;
 import dirc.core.net.ThreadedSocketIrcConnection;
 import dirc.core.server.IrcServer;
-import dirc.ui.event.IrcEvent;
-import dirc.ui.event.IrcEventListener;
-import dirc.ui.event.MotDEnd;
-import dirc.ui.event.MotDStart;
-import dirc.ui.event.QuitEvent;
 
 public class Test {
     public static class IrcTableModel extends AbstractTableModel implements IrcEventListener {
