@@ -16,6 +16,7 @@ import javax.swing.event.TableModelListener;
 import javax.swing.table.AbstractTableModel;
 
 import dirc.core.message.IrcMessage;
+import dirc.core.message.MotD;
 import dirc.core.message.TextStyle;
 import dirc.core.message.TextStyle.Style;
 import dirc.core.net.IrcConnection;
@@ -23,6 +24,8 @@ import dirc.core.net.ThreadedSocketIrcConnection;
 import dirc.core.server.IrcServer;
 import dirc.ui.event.IrcEvent;
 import dirc.ui.event.IrcEventListener;
+import dirc.ui.event.MotDEnd;
+import dirc.ui.event.MotDStart;
 import dirc.ui.event.QuitEvent;
 
 public class Test {
@@ -52,27 +55,8 @@ public class Test {
             
             if(!message.getTextStyles().isEmpty()) {
                 String text = message.getParameters().get(message.getParameters().size() - 1);
-                int start = 0;
-                StringBuilder sb = new StringBuilder("<html>");
-                for (TextStyle s : message.getTextStyles()) {
-                    sb.append(text.substring(start, s.getStart()));
-                    if(s.is(Style.Bold)) {
-                        sb.append("<b>");
-                    }
-                    else if(s.is(Style.Underlined)) {
-                        sb.append("<u>");
-                    }
-                    sb.append(text.substring(s.getStart(), s.getEnd()));
-                    if(s.is(Style.Bold)) {
-                        sb.append("</b>");
-                    }
-                    else if(s.is(Style.Underlined)) {
-                        sb.append("</u>");
-                    }
-                    start = s.getEnd();
-                }
-                sb.append(text.substring(start, text.length()));
-                messages.add(sb.toString());
+                List<TextStyle> textStyles = message.getTextStyles();
+                messages.add(convertToHtml(text, textStyles));
             }
             else {
                 StringBuilder sb = new StringBuilder();
@@ -85,9 +69,37 @@ public class Test {
             fireTableRowsInserted(r, r);
         }
 
+        private String convertToHtml(String text, List<TextStyle> textStyles) {
+            int start = 0;
+            StringBuilder sb = new StringBuilder("<html>");
+            for (TextStyle s : textStyles) {
+                sb.append(text.substring(start, s.getStart()));
+                if(s.is(Style.Bold)) {
+                    sb.append("<b>");
+                }
+                else if(s.is(Style.Underlined)) {
+                    sb.append("<u>");
+                }
+                sb.append(text.substring(s.getStart(), s.getEnd()));
+                if(s.is(Style.Bold)) {
+                    sb.append("</b>");
+                }
+                else if(s.is(Style.Underlined)) {
+                    sb.append("</u>");
+                }
+                start = s.getEnd();
+            }
+            sb.append(text.substring(start, text.length()));
+            return sb.toString();
+        }
+
         public void handleEvent(IrcEvent ev) {
             int r = messages.size();
-            messages.add(ev.getMessage());
+            String text = ev.getMessage();
+            if(ev instanceof MotD || ev instanceof MotDStart || ev instanceof MotDEnd) {
+                text = convertToHtml(text, ev.getTextStyles());
+            }
+            messages.add(text);
             fireTableRowsInserted(r, r);
         }
     }

@@ -83,13 +83,13 @@ public class IrcServer {
             return new ServerEvent(message.getJoinedParameters(1));
         }
         else if(RPL_MOTDSTART.equals(message.getCommand())) {
-            return new MotDStart(message.getLastParameter());
+            return new MotDStart(message.getLastParameter(), message.getTextStyles());
         }
         else if(RPL_MOTD.equals(message.getCommand())) {
-            return new MotD(message.getLastParameter());
+            return new MotD(message.getLastParameter(), message.getTextStyles());
         }
         else if(RPL_ENDOFMOTD.equals(message.getCommand())) {
-            return new MotDEnd(message.getLastParameter());
+            return new MotDEnd(message.getLastParameter(), message.getTextStyles());
         }
         return new ServerEvent(message.getJoinedParameters(0));
     }
