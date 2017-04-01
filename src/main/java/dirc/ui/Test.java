@@ -10,20 +10,22 @@ import java.util.concurrent.CountDownLatch;
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableColumn;
 
 import dirc.core.event.IrcEvent;
 import dirc.core.event.IrcEventListener;
 import dirc.core.event.MotD;
 import dirc.core.event.MotDEnd;
 import dirc.core.event.MotDStart;
+import dirc.core.event.NoticeEvent;
 import dirc.core.event.QuitEvent;
-import dirc.core.message.IrcMessage;
 import dirc.core.message.TextStyle;
 import dirc.core.message.TextStyle.Color;
 import dirc.core.message.TextStyle.Style;
@@ -35,9 +37,13 @@ public class Test {
     public static class IrcTableModel extends AbstractTableModel implements IrcEventListener {
         private static final long serialVersionUID = 1L;
 
+        private String nickname;
+        private List<String> recipients;
         private List<String> messages;
         
-        public IrcTableModel() {
+        public IrcTableModel(String nickname) {
+            this.nickname = nickname;
+            recipients = new ArrayList<String>();
             messages = new ArrayList<String>();
         }
         
@@ -46,32 +52,17 @@ public class Test {
         }
 
         public int getColumnCount() {
-            return 1;
+            return 2;
         }
 
         public Object getValueAt(int r, int c) {
-            return messages.get(r);
+            switch(c) {
+                case 0: return recipients.get(r);
+                case 1: return messages.get(r);
+                default: return null;
+            }
         }
 
-        public void receivedMessage(IrcMessage message) {
-            int r = messages.size();
-            
-            if(!message.getTextStyles().isEmpty()) {
-                String text = message.getParameters().get(message.getParameters().size() - 1);
-                List<TextStyle> textStyles = message.getTextStyles();
-                messages.add(convertToHtml(text, textStyles));
-            }
-            else {
-                StringBuilder sb = new StringBuilder();
-                List<String> ps = message.getParameters();
-                for (String p : ps) {
-                    sb.append(p).append(" ");
-                }
-                messages.add(sb.toString());
-            }
-            fireTableRowsInserted(r, r);
-        }
-        
         private String convertToHtml(String text, List<TextStyle> textStyles) {
             int start = 0;
             StringBuilder sb = new StringBuilder("<html>");
@@ -94,6 +85,7 @@ public class Test {
             if(ev instanceof MotD || ev instanceof MotDStart || ev instanceof MotDEnd) {
                 text = convertToHtml(text, ev.getTextStyles());
             }
+            recipients.add(nickname.equals(ev.getRecipient()) ? "-" : ev.getRecipient());
             messages.add(text);
             fireTableRowsInserted(r, r);
         }
@@ -111,10 +103,9 @@ public class Test {
                 }
             }
         });
-        final IrcTableModel tm = new IrcTableModel();
+        final IrcTableModel tm = new IrcTableModel("sh0rug0ru");
         s.addEventListener(tm);
-        tm.receivedMessage(new IrcMessage(null, null, null, null, null, 
-                Arrays.asList("Hello World"),
+        tm.handleEvent(new NoticeEvent("sh0rug0ru", "Hello World",
                 Arrays.asList(
                     new TextStyle(0, 5).toggle(Style.Bold).setColors(Color.Blue, Color.LightCyan),
                     new TextStyle(6, 11).toggle(Style.Underlined).toggle(Style.Italic)
@@ -134,6 +125,7 @@ public class Test {
                 final JTable table = new JTable(tm);
                 table.setTableHeader(null);
                 table.setShowHorizontalLines(false);
+                table.setShowVerticalLines(true);
                 f.add(new JScrollPane(table));
                 tm.addTableModelListener(new TableModelListener() {
                     public void tableChanged(final TableModelEvent e) {
@@ -144,6 +136,15 @@ public class Test {
                         });
                     }
                 });
+                
+                table.createDefaultColumnsFromModel();
+                TableColumn column = table.getColumnModel().getColumn(0);
+                column.setPreferredWidth(50);
+                column.setMaxWidth(50);
+                DefaultTableCellRenderer renderer = new DefaultTableCellRenderer();
+                renderer.setHorizontalAlignment(SwingConstants.TRAILING);
+                column.setCellRenderer(renderer);
+                
                 f.setSize(800, 600);
                 f.setVisible(true);
             }

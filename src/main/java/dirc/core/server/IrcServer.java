@@ -60,7 +60,7 @@ public class IrcServer {
     private IrcEvent translateEvent(IrcMessage message) {
         System.out.println(message.toString());
         if("QUIT".equalsIgnoreCase(message.getCommand())) {
-            return new QuitEvent(message.getNickname(), message.getLastParameter());
+            return new QuitEvent("*", message.getLastParameter());
         }
         if("NOTICE".equalsIgnoreCase(message.getCommand())) {
             return new NoticeEvent(message.getParameter(0), message.getLastParameter());
@@ -73,25 +73,25 @@ public class IrcServer {
                 RPL_LOCALUSERS.equals(message.getCommand()) ||
                 RPL_GLOBALUSERS.equals(message.getCommand()) ||
                 RPL_STATCONN.equals(message.getCommand())) {
-            return new ServerEvent(message.getLastParameter());
+            return new ServerEvent(message.getParameter(0), message.getLastParameter());
         }
         else if(RPL_MYINFO.equals(message.getCommand()) ||
                 RPL_ISUPPORT.equals(message.getCommand()) ||
                 RPL_LUSEROP.equals(message.getCommand()) ||
                 RPL_LUSERUNKNOWN.equals(message.getCommand()) ||
                 RPL_LUSERCHANNELS.equals(message.getCommand())) {
-            return new ServerEvent(message.getJoinedParameters(1));
+            return new ServerEvent(message.getParameter(0), message.getJoinedParameters(1));
         }
         else if(RPL_MOTDSTART.equals(message.getCommand())) {
-            return new MotDStart(message.getLastParameter(), message.getTextStyles());
+            return new MotDStart(message.getParameter(0), message.getLastParameter(), message.getTextStyles());
         }
         else if(RPL_MOTD.equals(message.getCommand())) {
-            return new MotD(message.getLastParameter(), message.getTextStyles());
+            return new MotD(message.getParameter(0), message.getLastParameter(), message.getTextStyles());
         }
         else if(RPL_ENDOFMOTD.equals(message.getCommand())) {
-            return new MotDEnd(message.getLastParameter(), message.getTextStyles());
+            return new MotDEnd(message.getParameter(0), message.getLastParameter(), message.getTextStyles());
         }
-        return new ServerEvent(message.getJoinedParameters(0));
+        return new ServerEvent("*", message.getJoinedParameters(0));
     }
 
     public void connect() throws IOException {

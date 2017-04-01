@@ -1,14 +1,15 @@
 package dirc.core.event;
 
-public class NoticeEvent extends IrcEvent {
-    private String message;
+import java.util.List;
 
+import dirc.core.message.TextStyle;
+
+public class NoticeEvent extends IrcEvent {
     public NoticeEvent(String recipient, String message) {
-        this.message = message;
+        super(recipient, message);
     }
 
-    @Override
-    public String getMessage() {
-        return message;
+    public NoticeEvent(String recipient, String message, List<TextStyle> textStyles) {
+        super(recipient, message, textStyles);
     }
 }

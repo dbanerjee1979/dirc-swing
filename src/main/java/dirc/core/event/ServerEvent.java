@@ -1,14 +1,7 @@
 package dirc.core.event;
 
 public class ServerEvent extends IrcEvent {
-    private String messageText;
-
-    public ServerEvent(String messageText) {
-        this.messageText = messageText;
-    }
-
-    @Override
-    public String getMessage() {
-        return messageText;
+    public ServerEvent(String recipient, String messageText) {
+        super(recipient, messageText);
     }
 }
