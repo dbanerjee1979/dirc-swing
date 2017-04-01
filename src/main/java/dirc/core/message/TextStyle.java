@@ -90,8 +90,9 @@ public class TextStyle {
         return this;
     }
 
-    public void setColors(Color foreground, Color background) {
+    public TextStyle setColors(Color foreground, Color background) {
         styles.put(Style.Color, Arrays.asList(foreground, background));
+        return this;
     }
 
     public TextStyle trimRange(int end) {

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -23,6 +24,7 @@ import dirc.core.event.MotDStart;
 import dirc.core.event.QuitEvent;
 import dirc.core.message.IrcMessage;
 import dirc.core.message.TextStyle;
+import dirc.core.message.TextStyle.Color;
 import dirc.core.message.TextStyle.Style;
 import dirc.core.net.IrcConnection;
 import dirc.core.net.ThreadedSocketIrcConnection;
@@ -34,8 +36,85 @@ public class Test {
 
         private List<String> messages;
         
+        private EnumMap<Color, String> colorCodes;
+
+        private enum HtmlStyle {
+            Bold(Style.Bold, "b"), 
+            Italic(Style.Italic, "i"), 
+            Underline(Style.Underlined, "u"),
+            Color(Style.Color, "font") {
+                private EnumMap<Color, String> colorCodes;
+                {
+                    colorCodes = new EnumMap<Color, String>(Color.class);
+                    colorCodes.put(TextStyle.Color.White, "#ffffff");
+                    colorCodes.put(TextStyle.Color.Black, "#000000");
+                    colorCodes.put(TextStyle.Color.Blue, "#0000aa");
+                    colorCodes.put(TextStyle.Color.Green, "#00aa00");
+                    colorCodes.put(TextStyle.Color.Red, "#aa0000");
+                    colorCodes.put(TextStyle.Color.Brown, "#aa5500");
+                    colorCodes.put(TextStyle.Color.Purple, "#aa00aa");
+                    colorCodes.put(TextStyle.Color.Orange, "#ff5555");
+                    colorCodes.put(TextStyle.Color.Yellow, "#ffff55");
+                    colorCodes.put(TextStyle.Color.LightGreen, "#55ff55");
+                    colorCodes.put(TextStyle.Color.Teal, "#00aaaa");
+                    colorCodes.put(TextStyle.Color.LightCyan, "#55ffff");
+                    colorCodes.put(TextStyle.Color.LightBlue, "#5555ff");
+                    colorCodes.put(TextStyle.Color.Pink, "#ff55ff");
+                    colorCodes.put(TextStyle.Color.Grey, "#555555");
+                    colorCodes.put(TextStyle.Color.LightGrey, "#aaaaaa");
+                }
+                
+                @Override
+                public String attrs(TextStyle ts) {
+                    String foreground = colorCodes.get(ts.getForeground());
+                    String background = colorCodes.get(ts.getBackground());
+                    return " style='" + 
+                           (foreground != null ? "color: " + foreground + ";" : "") +
+                           (background != null ? "background: " + background + ";" : "") +
+                           "' ";
+                }
+            };
+            
+            private Style s;
+            private String tag;
+            
+            HtmlStyle(Style s, String tag) {
+                this.s = s;
+                this.tag = tag;
+            }
+            
+            public String attrs(TextStyle ts) {
+                return "";
+            }
+            
+            public void insert(StringBuilder sb, int i, TextStyle ts) {
+                if(ts.is(s)) {
+                    sb.insert(i, "<" + tag + attrs(ts) + ">");
+                    sb.append("</" + tag + ">");
+                }
+            }
+        }
+        
         public IrcTableModel() {
             messages = new ArrayList<String>();
+            
+            colorCodes = new EnumMap<Color, String>(Color.class);
+            colorCodes.put(Color.White, "#ffffff");
+            colorCodes.put(Color.Black, "#000000");
+            colorCodes.put(Color.Blue, "#0000aa");
+            colorCodes.put(Color.Green, "#00aa00");
+            colorCodes.put(Color.Red, "#aa0000");
+            colorCodes.put(Color.Brown, "#aa5500");
+            colorCodes.put(Color.Purple, "#aa00aa");
+            colorCodes.put(Color.Orange, "#ff5555");
+            colorCodes.put(Color.Yellow, "#ffff55");
+            colorCodes.put(Color.LightGreen, "#55ff55");
+            colorCodes.put(Color.Teal, "#00aaaa");
+            colorCodes.put(Color.LightCyan, "#55ffff");
+            colorCodes.put(Color.LightBlue, "#5555ff");
+            colorCodes.put(Color.Pink, "#ff55ff");
+            colorCodes.put(Color.Grey, "#555555");
+            colorCodes.put(Color.LightGrey, "#aaaaaa");
         }
         
         public int getRowCount() {
@@ -68,24 +147,16 @@ public class Test {
             }
             fireTableRowsInserted(r, r);
         }
-
+        
         private String convertToHtml(String text, List<TextStyle> textStyles) {
             int start = 0;
             StringBuilder sb = new StringBuilder("<html>");
             for (TextStyle s : textStyles) {
                 sb.append(text.substring(start, s.getStart()));
-                if(s.is(Style.Bold)) {
-                    sb.append("<b>");
-                }
-                else if(s.is(Style.Underlined)) {
-                    sb.append("<u>");
-                }
+                int i = sb.length();
                 sb.append(text.substring(s.getStart(), s.getEnd()));
-                if(s.is(Style.Bold)) {
-                    sb.append("</b>");
-                }
-                else if(s.is(Style.Underlined)) {
-                    sb.append("</u>");
+                for (HtmlStyle hs : HtmlStyle.values()) {
+                    hs.insert(sb, i, s);
                 }
                 start = s.getEnd();
             }
@@ -121,8 +192,8 @@ public class Test {
         tm.receivedMessage(new IrcMessage(null, null, null, null, null, 
                 Arrays.asList("Hello World"),
                 Arrays.asList(
-                    new TextStyle(0, 5).toggle(TextStyle.Style.Bold),
-                    new TextStyle(6, 11).toggle(TextStyle.Style.Underlined)
+                    new TextStyle(0, 5).toggle(Style.Bold).setColors(Color.Blue, Color.LightCyan),
+                    new TextStyle(6, 11).toggle(Style.Underlined).toggle(Style.Italic)
                 )));
         
         SwingUtilities.invokeLater(new Runnable() {
