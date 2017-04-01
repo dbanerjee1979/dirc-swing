@@ -10,6 +10,7 @@ import dirc.core.event.MotD;
 import dirc.core.event.MotDEnd;
 import dirc.core.event.MotDStart;
 import dirc.core.event.NoticeEvent;
+import dirc.core.event.PingEvent;
 import dirc.core.event.QuitEvent;
 import dirc.core.event.ServerEvent;
 import dirc.core.message.IrcMessage;
@@ -42,7 +43,13 @@ public class IrcServer {
         this.listeners = new ArrayList<IrcEventListener>();
         connection.addMessageListener(new IrcMessageListener() {
             public void receivedMessage(IrcMessage message) {
-                fireEvent(translateEvent(message));
+                IrcEvent ev = translateEvent(message);
+                if(ev instanceof PingEvent) {
+                    pong(((PingEvent) ev).getServername());
+                } 
+                else {
+                    fireEvent(ev);
+                }
             }
         });
     }
@@ -64,6 +71,9 @@ public class IrcServer {
         }
         if("NOTICE".equalsIgnoreCase(message.getCommand())) {
             return new NoticeEvent(message.getParameter(0), message.getLastParameter());
+        }
+        if("PING".equalsIgnoreCase(message.getCommand())) {
+            return new PingEvent(message.getParameter(0));
         }
         else if(RPL_WELCOME.equals(message.getCommand()) ||
                 RPL_YOURHOST.equals(message.getCommand()) ||
@@ -97,6 +107,11 @@ public class IrcServer {
     public void connect() throws IOException {
         this.connection.connect();
     }
+    
+    public void close() {
+        this.connection.close();
+    }
+
 
     public void nickname(String nick) {
         this.connection.sendMessage(new IrcMessage("NICK", nick));
@@ -108,5 +123,13 @@ public class IrcServer {
 
     public void quit() {
         this.connection.sendMessage(new IrcMessage("QUIT"));
+    }
+    
+    public void pong(String servername) {
+        this.connection.sendMessage(new IrcMessage("PONG", servername));
+    }
+
+    public IrcChannel join(String channelname) {
+        return new IrcChannel(channelname, this.connection);
     }
 }

@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import dirc.core.config.IrcServerInfo;
 import dirc.core.message.IrcMessage;
 import dirc.core.message.IrcMessageListener;
 import dirc.core.message.IrcMessageReader;
@@ -23,13 +24,17 @@ public class ThreadedSocketIrcConnection implements IrcConnection {
     private Socket s;
     private Sender sender;
 
+    public ThreadedSocketIrcConnection(IrcServerInfo s) {
+        this(s.getHostname(), s.getPort(), s.getCharset());
+    }
+    
     public ThreadedSocketIrcConnection(String hostname, int port, Charset charset) {
         this.hostname = hostname;
         this.port = port;
         this.charset = charset;
         this.listeners = new ArrayList<IrcMessageListener>();
     }
-
+    
     public void addMessageListener(IrcMessageListener listener) {
         this.listeners.add(listener);
     }
