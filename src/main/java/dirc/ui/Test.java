@@ -11,6 +11,8 @@ import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.AbstractTableModel;
@@ -118,11 +120,19 @@ public class Test {
                     new TextStyle(6, 11).toggle(Style.Underlined).toggle(Style.Italic)
                 )));
         
+        try {
+            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+        } 
+        catch (Exception ex) {
+            throw new IllegalStateException(ex);
+        }
+        
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 JFrame f = new JFrame("dIRC");
                 f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 final JTable table = new JTable(tm);
+                table.setTableHeader(null);
                 table.setShowHorizontalLines(false);
                 f.add(new JScrollPane(table));
                 tm.addTableModelListener(new TableModelListener() {
