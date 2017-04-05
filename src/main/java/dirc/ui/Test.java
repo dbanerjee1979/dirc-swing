@@ -40,7 +40,7 @@ public class Test {
                 .build();
         
         IrcServerNode serverNode = ircModel.connect(network);
-        // serverNode.join("#haskell");
+        serverNode.join("#haskell");
         serverNode.quit();
     }
 }

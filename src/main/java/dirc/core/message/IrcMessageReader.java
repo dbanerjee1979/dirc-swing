@@ -1,6 +1,9 @@
 package dirc.core.message;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,80 +25,226 @@ import dirc.core.message.TextStyle.Color;
  */
 public class IrcMessageReader {
     // Regular expressions defined below correspond to the IRC message format defined in IRC 2812
-    private static final String SERVERNAME_PREFIX_PATTERN = 
-            ":[A-z0-9][A-z0-9-]*[A-z0-9]*(?:\\.[A-z0-9][A-z0-9-]*[A-z0-9]*)+";
+    private static final Pattern SERVERNAME_PREFIX_PATTERN = Pattern.compile(
+            "([A-z0-9][A-z0-9-]*[A-z0-9]*(?:\\.[A-z0-9][A-z0-9-]*[A-z0-9]*)+)");
     private static final Pattern NICKNAME_PREFIX_PATTERN = Pattern.compile(
-            ":([A-z\\x5B-\\x60\\x7B-\\x7D](?:[A-z0-9\\x5B-\\x60\\x7B-\\x7D-]){0,8})(?:(?:!([^!@]+))?@([^!@]+))?");
-    private static final String COMMAND_PATTERN = 
-            "[A-z]+|[0-9]{3}";
-    private static final String MIDDLE_PARAMETER_PATTERN = 
-            "[^ :\\n\\r][^ \\n\\r]*";
-    private static final String TRAILING_PARAMETER_PATTERN = 
-            ":[^\\n\\r]*";
+            "([A-z\\x5B-\\x60\\x7B-\\x7D](?:[A-z0-9\\x5B-\\x60\\x7B-\\x7D-]){0,8})(?:(?:!([^!@]+))?@([^!@]+))?");
+    private static final Pattern COMMAND_PATTERN = Pattern.compile(
+            "[A-z]+|[0-9]{3}");
     private static final Pattern FORMATTING_PATTERN = Pattern.compile(
             "(\u0002)|(\u001D)|(\u001F)|(\u000F)|(\u0003)([0-9]{2})?(?:,([0-9]{2}))?|(\u0016)");
     
-    private Scanner s;
+    private InputStreamReader r;
+
+    /**
+     * State machine - each enum represents a parse state, and the next method represents the state transition to the
+     * next parse state.
+     */
+    private enum State {
+        Init {
+            @Override
+            public State next(char c, MessageParser p) {
+                if(c == ':') {
+                    return Prefix;
+                }
+                else if(isCommandChar(c)) {
+                    p.appendToken(c);
+                    return Command;
+                }
+                else if(isCRLF(c)) {
+                    return Init;
+                }
+                return Error;
+            }
+        }, 
+        Prefix {
+            @Override
+            public State next(char c, MessageParser p) {
+                if((c == ' ' || isCRLF(c)) && p.consumePrefix()) {
+                    return c == ' ' ? Command : Error;
+                }
+                else {
+                    p.appendToken(c);
+                    return Prefix;
+                }
+            }
+        },
+        Command {
+            @Override
+            public State next(char c, MessageParser p) {
+                if(isCommandChar(c)) {
+                    p.appendToken(c);
+                    return Command;
+                }
+                else if((c == ' ' || isCRLF(c)) && p.consumeCommand()) {
+                    return c == ' ' ? Parameters : Done;
+                }
+                return Error;
+            }
+        },
+        Parameters {
+            @Override
+            public State next(char c, MessageParser p) {
+                if(c == ':') {
+                    return TrailingParameter;
+                }
+                else {
+                    p.appendToken(c);
+                    return MiddleParameter;
+                }
+            }
+        },
+        MiddleParameter {
+            @Override
+            public State next(char c, MessageParser p) {
+                if(c == ' ' || isCRLF(c)) {
+                    p.consumeParameter();
+                    return c == ' ' ? Parameters : Done;
+                }
+                else {
+                    p.appendToken(c);
+                    return MiddleParameter;
+                }
+            }
+        },
+        TrailingParameter {
+            @Override
+            public State next(char c, MessageParser p) {
+                if(isCRLF(c)) {
+                    p.consumeParameter();
+                    return Done;
+                }
+                else {
+                    p.appendToken(c);
+                    return TrailingParameter;
+                }
+            }
+        },
+        Done {
+            @Override
+            public State next(char c, MessageParser p) {
+                return null;
+            }
+        },
+        Error {
+            @Override
+            public State next(char c, MessageParser p) {
+                if(isCRLF(c)) {
+                    return Init;
+                }
+                return Error;
+            }
+        };
+
+        public abstract State next(char c, MessageParser p);
+
+        protected boolean isCommandChar(char c) {
+            return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9';
+        }
+        
+        protected boolean isCRLF(char c) {
+            return c == '\r' || c == '\n';
+        }
+    }
 
     /**
      * Create a message reader
      * 
      * @param is      - input byte stream of IRC server responses
      * @param charset - character encoding of the byte stream
+     * @throws UnsupportedEncodingException 
      */
-    public IrcMessageReader(InputStream is, Charset charset) {
-        s = new Scanner(is, charset.name());
+    public IrcMessageReader(InputStream is, Charset charset) throws IOException {
+        //s = new Scanner(is, charset.name());
+        r = new InputStreamReader(is, charset.name());
     }
 
     /**
      * Read the next message from the IRC server
      * 
      * @return response transfromed to {@link IrcMessage} format, or null if no more data from stream
+     * @throws IOException 
      */
-    public IrcMessage nextMessage() {
-        while(s.hasNextLine()) {
-            try {
-                return new MessageParser(s).getMessage();
-            }
-            catch(NoSuchElementException ex) {
-                abortRestOfLine();
-            }
-        }
-        return null;
+    public IrcMessage nextMessage() throws IOException {
+        return new MessageParser(r).getMessage();
     }
 
-    /**
-     * Skip past the rest of input to the end of line on malformed server response
-     */
-    private void abortRestOfLine() {
-        if(s.hasNextLine()) {
-            s.nextLine();
-        }
-    }
-    
     /**
      * Parse the input stream to produce a {@link IrcMessage}
      * 
      * Holds parsing state for a single parse. Create a new instance for each parse.
      */
     public static class MessageParser {
-        private Scanner s;
+        private InputStreamReader r;
+        private String command;
         private String servername;
         private String nickname;
         private String user;
         private String host;
         private List<String> parameters;
         private List<TextStyle> styles;
+        private StringBuilder token;
 
         /**
          * Create a message parser with fresh parse state
          * 
-         * @param s - {@link Scanner} wrapping the input stream
+         * @param r - {@link Scanner} wrapping the input stream
          */
-        public MessageParser(Scanner s) {
-            this.s = s;
+        public MessageParser(InputStreamReader r) {
+            this.r = r;
+            init();
+        }
+
+        /**
+         * Reset MessageParser state
+         */
+        private void init() {
+            this.servername = null;
+            this.nickname = null;
+            this.user = null;
+            this.host = null;
             this.parameters = new ArrayList<String>();
             this.styles = new ArrayList<TextStyle>();
+            this.token = new StringBuilder();
+        }
+        
+        /**
+         * Consume the prefix token, mapping the token to the servername or the components of the user information
+         * 
+         * @return true if mapping was successful, false otherwise
+         */
+        public boolean consumePrefix() {
+            String prefix = getToken();
+            Matcher m;
+            if(SERVERNAME_PREFIX_PATTERN.matcher(prefix).matches()) {
+                servername = prefix;
+                return true;
+            }
+            else if((m = NICKNAME_PREFIX_PATTERN.matcher(prefix)).matches()) {
+                nickname = m.group(1);
+                user = m.group(2);
+                host = m.group(3);
+                return true;
+            }
+            return false;
+        }
+        
+        /**
+         * Consume a command token, validating the alpha token or the numeric token
+         * 
+         * @return true if valid command, false otherwise
+         */
+        public boolean consumeCommand() {
+            String commandVal = getToken();
+            if(COMMAND_PATTERN.matcher(commandVal).matches()) {
+                command = commandVal;
+                return true;
+            }
+            return false;
+        }
+        
+        public void consumeParameter() {
+            parameters.add(parseTrailingFormatting(getToken()));
         }
 
         /**
@@ -103,75 +252,46 @@ public class IrcMessageReader {
          * 
          * @return the parsed message
          * 
-         * @throws NoSuchElementException on parse error 
+         * @throws IOException 
          */
-        public IrcMessage getMessage() {
-            // Reset delimiter to include spaces. Prior to trailing command, all message elements are spaces separted
-            s.useDelimiter("[ \\n\\r]+");
-            parsePrefix();
-            String command = s.next(COMMAND_PATTERN);
-            parseParameters();
-            return new IrcMessage(servername, nickname, user, host, command, parameters, styles);
+        public IrcMessage getMessage() throws IOException {
+            int i;
+            State s = State.Init;
+            while((i = r.read()) != -1 && (s = s.next((char) i, this)) != State.Done) {
+                if(s == State.Init) {
+                    init();
+                }
+            }
+            return i == -1 ? null : new IrcMessage(servername, nickname, user, host, command, parameters, styles);
         }
         
         /**
-         * Parse the prefix (if present). The IRC RFC (seems to) ambiguously define nickname and servername,
-         * if the dotted portion of the servername is optional.
+         * Reset token to initial state to start building a new one
+         */
+        private void resetToken() {
+            token = new StringBuilder();
+        }
+        
+        /**
+         * Add the character to the token
          * 
-         * Top prevent ambiguity, the servername will require dots, which cannot be present in a nickname.
+         * @param c - the character to add
          */
-        private void parsePrefix() {
-            if(s.hasNext(SERVERNAME_PREFIX_PATTERN)) {
-                servername = s.next(SERVERNAME_PREFIX_PATTERN).substring(1);
-            }
-            else if(s.hasNext(NICKNAME_PREFIX_PATTERN)) {
-                parseNickname();
-            }
-        }
-
-        /**
-         * Parse nickname into three component parts (nickname, user and host). The nick is only strictly required
-         * for identification (since only one nick can be registered on a server).
-         */
-        private void parseNickname() {
-            Matcher m = NICKNAME_PREFIX_PATTERN.matcher(s.next(NICKNAME_PREFIX_PATTERN));
-            if(m.matches()) {
-                nickname = m.group(1);
-                user = m.group(2);
-                host = m.group(3);
-            }
-        }
-
-        /**
-         * Parse parameters, first middle parameters then the trailing parameter.
-         */
-        private void parseParameters() {
-            parseMiddleParameters();
-            parseTrailingParameter();
-        }
-
-        /**
-         * Parse middle parameters. Cannot have spaces or leading colon.
-         */
-        private void parseMiddleParameters() {
-            while(s.hasNext(MIDDLE_PARAMETER_PATTERN)) {
-                parameters.add(s.next(MIDDLE_PARAMETER_PATTERN));
-            }
+        private void appendToken(int c) {
+            token.append((char) c);
         }
         
         /**
-         * Parse trailing parameter. Last parameter which can have spaces.
+         * Extract String value out of token, resetting it in the process
+         * 
+         * @return the String value of the accumulated token characters
          */
-        private void parseTrailingParameter() {
-            // Set delimiter to newline, to allow the trailing parameter to include spaces
-            // Skip leading spaces to arrive at the trailing parameter token manually
-            s.skip(" *");
-            s.useDelimiter("[\\n\\r]+");
-            if(s.hasNext(TRAILING_PARAMETER_PATTERN)) {
-                parameters.add(parseTrailingFormatting(s.next(TRAILING_PARAMETER_PATTERN).substring(1)));
-            }
+        private String getToken() {
+            String tokenVal = token.toString();
+            resetToken();
+            return tokenVal;
         }
-
+        
         /**
          * The trailing parameter is the only one for which IRC formatting codes will be considered. This method
          * strips out the control codes from the trailing parameter and creates {@link TextStyle} objects which

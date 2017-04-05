@@ -47,7 +47,9 @@ public class IrcServerNode extends DefaultMutableTreeNode {
         this.server.quit();
     }
 
-    public IrcChannelNode join(String string) {
+    public IrcChannelNode join(String channel) {
+        this.server.join(channel);
+        
         return new IrcChannelNode();
     }
 }

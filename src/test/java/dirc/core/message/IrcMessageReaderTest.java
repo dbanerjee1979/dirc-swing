@@ -70,6 +70,7 @@ public class IrcMessageReaderTest {
         assertEquals(Arrays.asList("a:b", "c", "Hello World!"), m.getParameters());
     }
     
+    @Test
     public void should_read_numeric_command() throws IOException {
         InputStream is = new ByteArrayInputStream("372 :Hello World!\r\n".getBytes("UTF-8"));
         IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
@@ -79,6 +80,7 @@ public class IrcMessageReaderTest {
         assertEquals(Arrays.asList("Hello World!"), m.getParameters());
     }
     
+    @Test
     public void should_skip_numeric_command_with_less_than_three_digits() throws IOException {
         InputStream is = new ByteArrayInputStream("37 :Hello World!\r\n".getBytes("UTF-8"));
         IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
@@ -86,6 +88,7 @@ public class IrcMessageReaderTest {
         assertNull(m);
     }
     
+    @Test
     public void should_skip_numeric_command_with_more_than_three_digits() throws IOException {
         InputStream is = new ByteArrayInputStream("3720 :Hello World!\r\n".getBytes("UTF-8"));
         IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
@@ -93,6 +96,7 @@ public class IrcMessageReaderTest {
         assertNull(m);
     }
     
+    @Test
     public void should_skip_alpha_command_with_non_alpha_characters() throws IOException {
         InputStream is = new ByteArrayInputStream("NOTICE! :Hello World!\r\n".getBytes("UTF-8"));
         IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
@@ -100,6 +104,7 @@ public class IrcMessageReaderTest {
         assertNull(m);
     }
     
+    @Test
     public void should_skip_numeric_command_with_non_alpha_characters() throws IOException {
         InputStream is = new ByteArrayInputStream("372! :Hello World!\r\n".getBytes("UTF-8"));
         IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
@@ -208,6 +213,21 @@ public class IrcMessageReaderTest {
 
         IrcMessage m = r.nextMessage();
         assertNull(m.getServername());
+        assertEquals("NOTICE", m.getCommand());
+        assertEquals(Arrays.asList("Hello World!"), m.getParameters());
+
+        assertNull(r.nextMessage());
+    }
+
+    @Test
+    public void should_handle_terminal_middle_parameter() throws IOException {
+        InputStream is = new ByteArrayInputStream("JOIN #haskell\r\nNOTICE :Hello World!\r\n".getBytes("UTF-8"));
+        IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
+
+        IrcMessage m = r.nextMessage();
+        assertEquals("JOIN", m.getCommand());
+        assertEquals(Arrays.asList("#haskell"), m.getParameters());
+        m = r.nextMessage();
         assertEquals("NOTICE", m.getCommand());
         assertEquals(Arrays.asList("Hello World!"), m.getParameters());
 

@@ -2,7 +2,9 @@ package dirc.core.server;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import dirc.core.event.IrcEvent;
 import dirc.core.event.IrcEventListener;
@@ -37,10 +39,13 @@ public class IrcServer {
     
     private IrcConnection connection;
     private List<IrcEventListener> listeners;
+    private Map<String, IrcChannel> channels;
 
     public IrcServer(IrcConnection connection) {
         this.connection = connection;
         this.listeners = new ArrayList<IrcEventListener>();
+        this.channels = new HashMap<String, IrcChannel>();
+        
         connection.addMessageListener(new IrcMessageListener() {
             public void receivedMessage(IrcMessage message) {
                 IrcEvent ev = translateEvent(message);
@@ -74,6 +79,9 @@ public class IrcServer {
         }
         if("PING".equalsIgnoreCase(message.getCommand())) {
             return new PingEvent(message.getParameter(0));
+        }
+        else if("JOIN".equalsIgnoreCase(message.getCommand())) {
+            return new ServerEvent(message.getParameter(0), message.getLastParameter());
         }
         else if(RPL_WELCOME.equals(message.getCommand()) ||
                 RPL_YOURHOST.equals(message.getCommand()) ||
@@ -112,7 +120,6 @@ public class IrcServer {
         this.connection.close();
     }
 
-
     public void nickname(String nick) {
         this.connection.sendMessage(new IrcMessage("NICK", nick));
     }
@@ -130,6 +137,8 @@ public class IrcServer {
     }
 
     public IrcChannel join(String channelname) {
-        return new IrcChannel(channelname, this.connection);
+        IrcChannel channel = new IrcChannel(channelname, this.connection);
+        channels.put(channelname, channel);
+        return channel;
     }
 }

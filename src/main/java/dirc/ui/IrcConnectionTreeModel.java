@@ -67,7 +67,7 @@ public class IrcConnectionTreeModel implements TreeModel {
         
         final IrcServerNode serverNode = new IrcServerNode(s, sc.getHostname(), network.getNickname());
         treeModel.insertNodeInto(serverNode, root, root.getChildCount());
-
+        
         s.connect();
         s.nickname(network.getNickname());
         s.username(network.getUsername(), network.getRealName());
