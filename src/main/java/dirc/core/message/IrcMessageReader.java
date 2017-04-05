@@ -154,7 +154,6 @@ public class IrcMessageReader {
      * @throws UnsupportedEncodingException 
      */
     public IrcMessageReader(InputStream is, Charset charset) throws IOException {
-        //s = new Scanner(is, charset.name());
         r = new InputStreamReader(is, charset.name());
     }
 

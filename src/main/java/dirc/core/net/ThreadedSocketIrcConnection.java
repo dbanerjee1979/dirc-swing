@@ -115,10 +115,15 @@ public class ThreadedSocketIrcConnection implements IrcConnection {
         }
 
         public void run() {
-            IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
-            IrcMessage m = null;
-            while((m = r.nextMessage()) != null) {
-                fireMessageRecieved(m);
+            try {
+                IrcMessageReader r = new IrcMessageReader(is, Charset.forName("UTF-8"));
+                IrcMessage m = null;
+                while((m = r.nextMessage()) != null) {
+                    fireMessageRecieved(m);
+                }
+            }
+            catch(IOException ex) {
+                throw new IllegalStateException(ex);
             }
         }
     }
